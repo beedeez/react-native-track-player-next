@@ -30,7 +30,9 @@ import com.doublesymmetry.trackplayer.module.MusicEvents.Companion.METADATA_PAYL
 import com.doublesymmetry.trackplayer.utils.BundleUtils
 import com.doublesymmetry.trackplayer.utils.BundleUtils.setRating
 import com.facebook.react.HeadlessJsTaskService
+import com.facebook.react.ReactApplication
 import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReactContext
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.google.android.exoplayer2.ui.R as ExoPlayerR
@@ -739,9 +741,23 @@ class MusicService : HeadlessJsTaskService() {
         return bundle
     }
 
+    private fun getCurrentReactContext(): ReactContext? {
+        val app = application as? ReactApplication ?: return null
+        return try {
+            app.reactHost?.currentReactContext
+        } catch (_: Exception) {
+            @Suppress("DEPRECATION")
+            try {
+                app.reactNativeHost.reactInstanceManager.currentReactContext
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
     @MainThread
     private fun emit(event: String, data: Bundle? = null) {
-        reactNativeHost.reactInstanceManager.currentReactContext
+        getCurrentReactContext()
             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             ?.emit(event, data?.let { Arguments.fromBundle(it) })
     }
@@ -751,7 +767,7 @@ class MusicService : HeadlessJsTaskService() {
         val payload = Arguments.createArray()
         data.forEach { payload.pushMap(Arguments.fromBundle(it)) }
 
-        reactNativeHost.reactInstanceManager.currentReactContext
+        getCurrentReactContext()
             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             ?.emit(event, payload)
     }
